@@ -54,9 +54,5 @@ public class CourseController {
         courseRepository.deleteById(id);
     }
 
-    @PostMapping
-    public Course createCourse(@RequestBody Course course){
-        return courseRepository.save(course);
-    }
 
 }
