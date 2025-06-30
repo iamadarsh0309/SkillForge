@@ -11,7 +11,8 @@ import org.springframework.data.mongodb.core.mapping.Document;
 public class AuthUser {
     @Id
     private String id;
+
     private String email;
     private String password;
-    private String role = "USER";
+    private UserRole role;
 }

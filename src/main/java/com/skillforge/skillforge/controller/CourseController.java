@@ -1,8 +1,14 @@
 package com.skillforge.skillforge.controller;
 
+import com.skillforge.skillforge.model.AuthUser;
 import com.skillforge.skillforge.model.Course;
+import com.skillforge.skillforge.repository.AuthUserRepository;
 import com.skillforge.skillforge.repository.CourseRepository;
+import com.skillforge.skillforge.security.CurrentUserUtil;
+import com.skillforge.skillforge.security.JwtUtil;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -14,11 +20,41 @@ import java.util.List;
 public class CourseController {
     @Autowired
     private CourseRepository courseRepository;
-    @PostMapping
-    public Course addCourse(@RequestBody Course course){
 
+    @Autowired
+    private CurrentUserUtil currentUserUtil;
+
+    @Autowired
+    private AuthUserRepository authUserRepository;
+
+    @Autowired
+    private JwtUtil jwtUtil;
+
+    @PostMapping
+    public Course addCourse(@RequestHeader("Authorization") String authHeader , @RequestBody Course course){
+        String token = authHeader.substring(7);
+        String email = jwtUtil.extractEmail(token);
+
+        AuthUser mentor = authUserRepository.findByEmail(email).orElseThrow(()->
+                new RuntimeException("Mentor not found"));
+        course.setMentorId(mentor.getId());
         return courseRepository.save(course);
     }
+
+    @GetMapping("/my")
+    public ResponseEntity<?> getMentorCourses(@RequestHeader("Authorization") String authHeader) {
+        String token = authHeader.substring(7);
+        // remove "Bearer " prefix
+        String email = jwtUtil.extractEmail(token);
+        AuthUser mentor = authUserRepository.findByEmail(email).orElseThrow(()->
+                new RuntimeException("Mentor not found"));
+
+        List<Course> courses = courseRepository.findByMentorId(mentor.getId());
+
+
+        return ResponseEntity.ok(courses);
+    }
+
 
     @GetMapping
     public List<Course> getAllCourses(){

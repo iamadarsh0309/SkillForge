@@ -20,4 +20,6 @@ public class Course {
     private String category;
     private int duration;
 
+    private double averageRating = 0.0;
+
 }
