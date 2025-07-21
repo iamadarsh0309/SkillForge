@@ -1,8 +1,11 @@
 package com.skillforge.skillforge.controller;
 
+import com.skillforge.skillforge.model.AuthUser;
 import com.skillforge.skillforge.model.Enrollment;
 import com.skillforge.skillforge.repository.EnrollmentRepository;
+import org.apache.tomcat.util.net.openssl.ciphers.Authentication;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
@@ -15,7 +18,9 @@ public class EnrollmentController {
     private EnrollmentRepository enrollmentRepository;
 
     @PostMapping
+
     public Enrollment enrollUser(@RequestBody Enrollment enrollment){
+
         return enrollmentRepository.save(enrollment);
     }
 

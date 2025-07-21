@@ -4,6 +4,9 @@ import lombok.*;
 import org.springframework.data.annotation.Id;
 import org.springframework.data.mongodb.core.mapping.Document;
 
+import java.util.ArrayList;
+import java.util.List;
+
 @Document(collection = "courses")
 @Data
 @NoArgsConstructor
@@ -21,5 +24,7 @@ public class Course {
     private int duration;
 
     private double averageRating = 0.0;
+
+    private List<String> enrolledStudentIds = new ArrayList<>();
 
 }

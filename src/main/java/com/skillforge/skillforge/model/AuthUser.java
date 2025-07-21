@@ -15,4 +15,9 @@ public class AuthUser {
     private String email;
     private String password;
     private UserRole role;
+
+    private String name;
+    private String bio;
+    private String profileImage; // Optional: profile pic URL
+
 }

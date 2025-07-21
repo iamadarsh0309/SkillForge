@@ -2,10 +2,12 @@ package com.skillforge.skillforge.controller;
 
 import com.skillforge.skillforge.model.AuthUser;
 import com.skillforge.skillforge.model.Course;
+import com.skillforge.skillforge.model.UserRole;
 import com.skillforge.skillforge.repository.AuthUserRepository;
 import com.skillforge.skillforge.repository.CourseRepository;
 import com.skillforge.skillforge.security.CurrentUserUtil;
 import com.skillforge.skillforge.security.JwtUtil;
+import jakarta.servlet.http.HttpServletRequest;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -22,37 +24,34 @@ public class CourseController {
     private CourseRepository courseRepository;
 
     @Autowired
-    private CurrentUserUtil currentUserUtil;
-
-    @Autowired
     private AuthUserRepository authUserRepository;
 
     @Autowired
     private JwtUtil jwtUtil;
 
     @PostMapping
-    public Course addCourse(@RequestHeader("Authorization") String authHeader , @RequestBody Course course){
-        String token = authHeader.substring(7);
-        String email = jwtUtil.extractEmail(token);
+    public Course createCourse(@RequestBody Course course, HttpServletRequest request) {
+        String jwt = jwtUtil.extractTokenFromRequest(request);
+        String email = jwtUtil.extractUsername(jwt);
+        AuthUser mentor = authUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        AuthUser mentor = authUserRepository.findByEmail(email).orElseThrow(()->
-                new RuntimeException("Mentor not found"));
+        if (mentor.getRole() != UserRole.MENTOR) {
+            throw new RuntimeException("Only mentors can create courses");
+        }
+
         course.setMentorId(mentor.getId());
         return courseRepository.save(course);
     }
 
     @GetMapping("/my")
-    public ResponseEntity<?> getMentorCourses(@RequestHeader("Authorization") String authHeader) {
-        String token = authHeader.substring(7);
-        // remove "Bearer " prefix
-        String email = jwtUtil.extractEmail(token);
-        AuthUser mentor = authUserRepository.findByEmail(email).orElseThrow(()->
-                new RuntimeException("Mentor not found"));
+    public List<Course> getMyCourses(HttpServletRequest request) {
+        String jwt = jwtUtil.extractTokenFromRequest(request);
+        String email = jwtUtil.extractUsername(jwt);
+        AuthUser mentor = authUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
 
-        List<Course> courses = courseRepository.findByMentorId(mentor.getId());
-
-
-        return ResponseEntity.ok(courses);
+        return courseRepository.findByMentorId(mentor.getId());
     }
 
 
@@ -74,19 +73,44 @@ public class CourseController {
     }
 
     @PutMapping("/{id}")
-    public Course updateCourseById(@PathVariable String id , @RequestBody Course updatedCourse){
-        Course course = courseRepository.findById(id).orElseThrow(()->
-                new RuntimeException("Course not found"));
+    public Course updateCourseById(@PathVariable String id, @RequestBody Course updatedCourse, HttpServletRequest request) {
+        String jwt = jwtUtil.extractTokenFromRequest(request);
+        String email = jwtUtil.extractUsername(jwt);
+        AuthUser mentor = authUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        // 🔒 Secure check
+        if (!course.getMentorId().equals(mentor.getId())) {
+            throw new RuntimeException("You are not allowed to update this course");
+        }
+
         course.setCategory(updatedCourse.getCategory());
         course.setDescription(updatedCourse.getDescription());
         course.setDuration(updatedCourse.getDuration());
         course.setPrice(updatedCourse.getPrice());
         course.setTitle(updatedCourse.getTitle());
+
         return courseRepository.save(course);
     }
 
     @DeleteMapping("/{id}")
-    public void deleteCourseById(@PathVariable String id){
+    public void deleteCourseById(@PathVariable String id, HttpServletRequest request) {
+        String jwt = jwtUtil.extractTokenFromRequest(request);
+        String email = jwtUtil.extractUsername(jwt);
+        AuthUser mentor = authUserRepository.findByEmail(email)
+                .orElseThrow(() -> new RuntimeException("User not found"));
+
+        Course course = courseRepository.findById(id)
+                .orElseThrow(() -> new RuntimeException("Course not found"));
+
+        // 🔒 Secure check
+        if (!course.getMentorId().equals(mentor.getId())) {
+            throw new RuntimeException("You are not allowed to delete this course");
+        }
+
         courseRepository.deleteById(id);
     }
 
